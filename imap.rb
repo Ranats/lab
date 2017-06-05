@@ -24,7 +24,8 @@ class Net::IMAP::Envelope
 end
 
 def login
- $imap = Net::IMAP.new($imap_host,$imap_port,$imap_usessl)
+ # $imap = Net::IMAP.new($imap_host,$imap_port,$imap_usessl)
+  $imap = Net::IMAP.new($imap_host,:port => $imap_port, :ssl => {:verify_mode => OpenSSL::SSL::VERIFY_PEER, :timeout => 600})
 
  $imap.login($imap_user,$imap_passwd)
 	#p imap.examine('INBOX')
@@ -34,6 +35,20 @@ end
 def deliver(envelope,msg_id,file_path)
 
   puts "called"
+
+#  options = { :address              => "smtp.office365.com",
+#              :port                 => 995,
+#              :user_name            => $imap_user,
+#              :password             => $imap_passwd,
+#              :authentication       => 'plain',
+#              :enable_starttls_auto => true
+#  }
+#
+#  Mail.defaults do
+#    delivery_method :smtp, options
+#  end
+
+
   fetch_attr = '(UID RFC822.SIZE ENVELOPE BODY[HEADER] BODY[TEXT])'
 
   m = $imap.fetch(msg_id,["BODY[TEXT]"])[0].attr["BODY[TEXT]"]
@@ -70,7 +85,6 @@ EOF
 
   puts "filed"
 
-=begin
   content = <<EOF
 From: #{$imap_user}
 To: #{$to}
@@ -96,12 +110,26 @@ Content-Disposition: attachment; filename=#{ File.basename(file_path)}
 
 --boundary_string_by_landscape_mail--
 EOF
-=end
 
+#  begin
+#  p mail.methods(false)
+#  rescue => e
+#    puts "errorror #{e}"
+#  end
   Net::SMTP.enable_tls(OpenSSL::SSL::VERIFY_NONE)
   Net::SMTP.start('smtp.office365.com', 587, 'office365.com', $imap_user, $imap_passwd, :login) do |smtp|
-    smtp.send_message(mail.encoded, $imap_user, $to)
+    begin
+    smtp.send_message(content, $imap_user, $to)
+    rescue => e
+      puts "errorror #{e}"
+    end
+
   end
+
+
+
+
+#  mail.deliver!
 
   puts "deliver"
 

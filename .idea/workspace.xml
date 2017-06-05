@@ -2,10 +2,8 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="b9311a3c-5c2b-4886-8984-0ef3994650b9" name="Default" comment="">
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/.idea/vcs.xml" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/.gitignore" afterPath="$PROJECT_DIR$/.gitignore" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/.idea/g-mailer.iml" afterPath="$PROJECT_DIR$/.idea/g-mailer.iml" />
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/.idea/workspace.xml" afterPath="$PROJECT_DIR$/.idea/workspace.xml" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/imap.rb" afterPath="$PROJECT_DIR$/imap.rb" />
     </list>
     <ignored path="g-mailer.iws" />
     <ignored path=".idea/workspace.xml" />
@@ -56,8 +54,8 @@
           <file leaf-file-name="imap.rb" pinned="false" current-in-tab="true">
             <entry file="file://$PROJECT_DIR$/imap.rb">
               <provider selected="true" editor-type-id="text-editor">
-                <state relative-caret-position="120">
-                  <caret line="8" column="0" selection-start-line="8" selection-start-column="0" selection-end-line="8" selection-end-column="0" />
+                <state relative-caret-position="255">
+                  <caret line="17" column="0" selection-start-line="17" selection-start-column="0" selection-end-line="17" selection-end-column="0" />
                   <folding />
                 </state>
               </provider>
@@ -90,8 +88,8 @@
           <file leaf-file-name="imap.rb" pinned="false" current-in-tab="true">
             <entry file="file://$PROJECT_DIR$/imap.rb">
               <provider selected="true" editor-type-id="text-editor">
-                <state relative-caret-position="-333">
-                  <caret line="102" column="23" selection-start-line="102" selection-start-column="23" selection-end-line="102" selection-end-column="23" />
+                <state relative-caret-position="672">
+                  <caret line="115" column="14" selection-start-line="115" selection-start-column="14" selection-end-line="115" selection-end-column="14" />
                   <folding />
                 </state>
               </provider>
@@ -359,12 +357,12 @@
       <option name="presentableId" value="Default" />
       <updated>1453379297783</updated>
       <workItem from="1496646871973" duration="9285000" />
-      <workItem from="1496658608547" duration="9210000" />
+      <workItem from="1496658608547" duration="11006000" />
     </task>
     <servers />
   </component>
   <component name="TimeTrackingManager">
-    <option name="totallyTimeSpent" value="18495000" />
+    <option name="totallyTimeSpent" value="20291000" />
   </component>
   <component name="ToolWindowManager">
     <frame x="15" y="15" width="1183" height="1046" extended-state="0" />
@@ -530,8 +528,8 @@
     </entry>
     <entry file="file://$PROJECT_DIR$/imap.rb">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="-333">
-          <caret line="102" column="23" selection-start-line="102" selection-start-column="23" selection-end-line="102" selection-end-column="23" />
+        <state relative-caret-position="672">
+          <caret line="115" column="14" selection-start-line="115" selection-start-column="14" selection-end-line="115" selection-end-column="14" />
           <folding />
         </state>
       </provider>
