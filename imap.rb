@@ -149,7 +149,7 @@ def quit
   $imap.disconnect
 end
 
-while true
+#while true
   begin
     login
     cron_job
@@ -158,6 +158,6 @@ while true
   rescue => e
     puts "Err #{e}"
   end
-  sleep(60)
-end
+#  sleep(60)
+#end
 
