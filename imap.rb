@@ -4,17 +4,22 @@ require 'kconv'
 require 'dotenv'
 require 'fileutils'
 require 'tlsmail'
+require 'base64'
 Dotenv.load 'reg.env'
 
 $imap_usessl = true
-$imap_host = "outlook.office365.com"
+$imap_host = 'outlook.office365.com'
 $imap_port = 993
+
+$smtp_host = 'smtp.office365.com'
+$smtp_port = 587
+$smtp_domain = 'office365.com'
 
 $imap_user=ENV["ID"]
 $imap_passwd=ENV["TOKEN"]
+$from = $imap_user
 $to = ENV["TO"]
 $file_path = ENV["FILEPATH"]
-addr=/tokai-u/
 
 class Net::IMAP::Envelope
   def mail_address_formatted(value)
@@ -24,67 +29,20 @@ class Net::IMAP::Envelope
 end
 
 def login
- # $imap = Net::IMAP.new($imap_host,$imap_port,$imap_usessl)
-  $imap = Net::IMAP.new($imap_host,:port => $imap_port, :ssl => {:verify_mode => OpenSSL::SSL::VERIFY_PEER, :timeout => 600})
+  # $imap = Net::IMAP.new($imap_host,$imap_port,$imap_usessl)
+  $imap = Net::IMAP.new($imap_host, $imap_port, $imap_usessl)
 
- $imap.login($imap_user,$imap_passwd)
-	#p imap.examine('INBOX')
- $imap.select('INBOX')
+  puts "connected"
+
+  $imap.login($imap_user, $imap_passwd)
+
+  puts "logined"
+
+  #p imap.examine('INBOX')
+  $imap.select('INBOX')
 end
 
-def deliver(envelope,msg_id,file_path)
-
-  puts "called"
-
-#  options = { :address              => "smtp.office365.com",
-#              :port                 => 995,
-#              :user_name            => $imap_user,
-#              :password             => $imap_passwd,
-#              :authentication       => 'plain',
-#              :enable_starttls_auto => true
-#  }
-#
-#  Mail.defaults do
-#    delivery_method :smtp, options
-#  end
-
-
-  fetch_attr = '(UID RFC822.SIZE ENVELOPE BODY[HEADER] BODY[TEXT])'
-
-  m = $imap.fetch(msg_id,["BODY[TEXT]"])[0].attr["BODY[TEXT]"]
-
-  body = <<EOF
-forwarded from Amethyst.
--------- Forwarded Message --------
-Subject: 	#{envelope.subject.toutf8}
-Date: 	#{envelope.date}
-From: 	#{envelope.from[0].name.toutf8} <#{envelope.from[0].mailbox}@#{envelope.from[0].host}>
-
-#{m}
-EOF
-
-  puts "bodyed"
-
-  mail = Mail.new do
-    from    $imap_user
-    to      $to
-    subject "FW:#{envelope.subject.toutf8}"
-    body    body
-  end
-
-  puts "mailed"
-
-  file_path.each do |file|
-    p file
-    begin
-      mail.add_file(file)
-    rescue => e
-      puts "添付に失敗 #{e.message}"
-    end
-  end
-
-  puts "filed"
-
+def deliver(envelope, body, file_path)
   content = <<EOF
 From: #{$imap_user}
 To: #{$to}
@@ -92,119 +50,114 @@ Subject: FW:#{envelope.subject.toutf8}
 Date: #{Time.now}
 MIME-Version: 1.0
 Content-Type: multipart/mixed; boundary=\"boundary_string_by_landscape_mail\"
-X-Mailer: imput.rb
+--boundary_string_by_landscape_mail
+Content-Type: text/plain; charset=iso2022-jp
+Content-Transfer-Encoding: 7bit
 
-forwarded from Amethyst.
+forwarded from #{`hostname`.strip}.
+
 -------- Forwarded Message --------
 Subject: 	#{envelope.subject.toutf8}
 Date: 	#{envelope.date}
 From: 	#{envelope.from[0].name.toutf8} <#{envelope.from[0].mailbox}@#{envelope.from[0].host}>
-  #{$imap.fetch(msg_id,"BODY[TEXT]")[0].attr["BODY[TEXT]"].toutf8}
+  #{body.toutf8}
 
---boundary_string_by_landscape_mail
-Content-Type: application/octet-stream; name=#{ file_path}
-Content-Transfer-Encoding: base64
-Content-Disposition: attachment; filename=#{ File.basename(file_path)}
-
-  #{ encoded}
-
---boundary_string_by_landscape_mail--
 EOF
 
-#  begin
-#  p mail.methods(false)
-#  rescue => e
-#    puts "errorror #{e}"
-#  end
+  file_path.each do |file|
+    content += <<EOF
+--boundary_string_by_landscape_mail
+Content-Type: #{file[:type]} name=#{File.basename(file[:path])}
+Content-Transfer-Encoding: base64
+Content-Disposition: attachment; filename=#{File.basename(file[:path])}
+
+#{Base64.encode64 File.open(file[:path]).read}
+
+EOF
+  end
+
+  content << "--boundary_string_by_landscape_mail--\n"
+
   Net::SMTP.enable_tls(OpenSSL::SSL::VERIFY_NONE)
-  Net::SMTP.start('smtp.office365.com', 587, 'office365.com', $imap_user, $imap_passwd, :login) do |smtp|
+  Net::SMTP.start($smtp_host, $smtp_port, $smtp_domain, $imap_user, $imap_passwd, :login) do |smtp|
     begin
-    smtp.send_message(content, $imap_user, $to)
+      smtp.send_message(content, $imap_user, $to)
+      puts "delivered"
     rescue => e
       puts "errorror #{e}"
     end
-
   end
-
-
-
-
-#  mail.deliver!
-
-  puts "deliver"
 
 end
 
 def cron_job
-  $imap.search(["SUBJECT","[somelab00",'UNSEEN']).each do |msg_id|
+  $imap.search(["SUBJECT", "[somelab00", 'UNSEEN']).each do |msg_id|
     envelope = $imap.fetch(msg_id, "ENVELOPE")[0].attr["ENVELOPE"]
-#    from = envelope.mail_address_formatted("from")
-#  puts "#{msg_id}:#{from}:#{envelope.subject.toutf8}"
-#    p envelope.from.first.name
-
-    mail = Mail.new($imap.fetch(msg_id,"RFC822")[0].attr["RFC822"])
-
-
-
     files = []
-    mail.attachments.each do |attachment|
-	    name = envelope.from.first.name.toutf8.gsub(/ /,"_")
-    	p name
-#      p attachment.content_type
-      p attachment.filename
 
-      filename = attachment.filename
-      dir = $file_path + "#{name}"#"R:\\Share\\workspace\\添付資料\\#{name}"
-      begin
-        FileUtils.mkdir_p(dir) unless FileTest.exist?(dir)
-        File.open("#{dir}/#{filename}","w+b") do |f|
-          f.write attachment.body.decoded
+    $imap.fetch(msg_id, "RFC822").each do |mail|
+      m = Mail.new(mail.attr["RFC822"])
+      name = envelope.from.first.name.toutf8.gsub(/ /, "_")
+      p name
+      p m.subject
+
+      body = ''
+
+      if m.multipart?
+        if m.text_part
+          body = m.text_part.decoded
+        elsif m.html_part
+          body = m.html_part.decoded
         end
-        files << "#{dir}/#{filename}"
-      rescue => e
-        puts "添付ファイルの保存に失敗 #{e.message}"
-      end
-    end
 
-    deliver(envelope,msg_id,files)
-#    deliver_m(envelope,msg_id,files)
+        #添付ファイル
+        m.attachments.each do |attachment|
+          # 添付ファイルの種類とファイル名
+          p attachment.content_type.match(/.*;/)[0]
+          p filename = attachment.filename
+
+          # 添付ファイルの保存処理
+          dir = $file_path + "#{name}" #"R:\\Share\\workspace\\添付資料\\#{name}"
+          begin
+            FileUtils.mkdir_p(dir) unless FileTest.exist?(dir)
+            File.open("#{dir}/#{filename}", "w+b") do |f|
+              f.write attachment.body.decoded
+            end
+          rescue => e
+            puts "添付ファイルの保存に失敗 #{e.message}"
+          end
+          files << {type: attachment.content_type.match(/.*;/)[0], path: "#{dir}/#{filename}"}
+        end
+
+      else
+        body = m.body.decoded
+      end
+
+      deliver(envelope, body, files)
+    end
 
 #    $imap.store(msg_id, "+FLAGS", [:Seen])
   end
 end
 
-#imap.search(['UNSEEN']).each do |msg_id|
-#  p envelope = imap.fetch(msg_id, "ENVELOPE")[0].attr["ENVELOPE"]
-#  from = envelope.mail_address_formatted("from")
-#  puts "#{msg_id}:#{from}:#{envelope.subject.toutf8}"
-#  if from =~ addr
-#    puts "delete"
-#    imap.store(msg_id, "+FLAGS", [:Deleted])
-#  end
-#end
+at_exit do
+  quit
+end
 
-
-
-#$imap = Net::IMAP.new($imap_host,$imap_port,$imap_usessl)
-#$imap.login($imap_user,$imap_passwd)
-
-#p imap.examine('INBOX')
-#$imap.select('INBOX')
-
-while true
-  login
-  begin
-    cron_job
-  rescue
-     login
-    cron_job
-  end
-  puts "checked at #{Time.now}"
-
+def quit
   $imap.logout
   $imap.disconnect
+end
 
-  sleep(3600)
-#  login
+while true
+  begin
+    login
+    cron_job
+    puts "checked at #{Time.now}"
+    quit
+  rescue => e
+    puts "Err #{e}"
+  end
+  sleep(60)
 end
 
