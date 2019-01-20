@@ -25,18 +25,18 @@ agent.mailbox("[somelab00").emails(:unread).each do |mail|
 
   s = File.read("last.txt", :encoding => Encoding::UTF_8)
   if s.empty?
-    s = mail.date
+    s = DateTime.parse(mail.date)
   end
     File.open("last.txt","w") do |f|
       f.write mail.date
     end
   last_date = DateTime.parse(s.to_s)
-#puts %(last_date:#{last_date})
-#puts %(mail.date:#{mail.date})
+#p last_date
+#p DateTime.parse(mail.date)
 
-  if last_date < mail.date
+  if last_date < DateTime.parse(mail.date)
 
-    title = mail.subject.toutf8
+    title = Kconv.toutf8(mail.subject)#subject.toutf8
     body = ""
     if !mail.text_part && !mail.html_part
       body << mail.body.decoded.encode("UTF-8", mail.charset)
@@ -63,7 +63,6 @@ agent.mailbox("[somelab00").emails(:unread).each do |mail|
 
     p Slack.auth_test
     Slack.chat_postMessage(username: "somelaBOT", icon_emoji: ":desktop_computer:", text: text, channel: "#mail")
-
     File.open("last.txt", "w") do |f|
       md = mail.date
 
